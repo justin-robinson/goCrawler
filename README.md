@@ -5,6 +5,9 @@ A parallel web crawler
 ## Note:
 You need to have `https://github.com/golang/net/tree/master/html`
 as `golang.org/x/net/html` in your GOPATH
+```shell
+git clone git@github.com:golang/net.git $GOPATH/src/golang.org/x/net
+```
 
 ```go
     // you need 2 channels for data and stopping

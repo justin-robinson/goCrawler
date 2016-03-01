@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"github.com/golang/net/html"
+	"golang.org/x/net/html"
 	"io/ioutil"
 	"strings"
 	"sync"

@@ -3,7 +3,7 @@
 A parallel web crawler
 
 ## Note:
-You need to have `github.com/golang/net/html` in your GOPATH
+You need to have `github.com/golang/net/html` as `golang.org/x/net/html` in your GOPATH
 
 ```go
     // you need 2 channels for data and stopping

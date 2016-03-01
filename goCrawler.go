@@ -105,7 +105,7 @@ func (c *Crawler) crawl(urlString string, depth int) {
 
 	// use this to build relative hrefs that don't
 	// have a domain name attached
-	mainUrl, err := url.Parse(urlString)
+	originUrl, err := url.Parse(urlString)
 	if err != nil {
 		log.Print(err)
 		endChannel <- true
@@ -113,7 +113,7 @@ func (c *Crawler) crawl(urlString string, depth int) {
 	}
 
 	// only crawl http or https pages
-	switch mainUrl.Scheme {
+	switch originUrl.Scheme {
 	case "http":
 		fallthrough
 	case "https":
@@ -153,15 +153,15 @@ func (c *Crawler) crawl(urlString string, depth int) {
 	c.Export <- crawledUrl
 
 	// parse body
-	doc, err := html.Parse(strings.NewReader(crawledUrl.Body))
+	headNode, err := html.Parse(strings.NewReader(crawledUrl.Body))
 	if err != nil {
 		log.Print(err)
 		endChannel <- true
 		return
 	}
 
-	// find all hrefs
-	urls := crawlNodes(doc, mainUrl)
+	// find all urls
+	urls := findUrlsInNode(headNode, originUrl)
 
 	for _, urlToCrawl := range urls {
 		startChannel <- true
@@ -175,7 +175,7 @@ func (c *Crawler) crawl(urlString string, depth int) {
 }
 
 // recursively crawls dom nodes searching for more urls
-func crawlNodes(n *html.Node, mainUrl *url.URL) []string {
+func findUrlsInNode(n *html.Node, originUrl *url.URL) []string {
 
 	// the url we find
 	urls := []string{}
@@ -190,10 +190,10 @@ func crawlNodes(n *html.Node, mainUrl *url.URL) []string {
 
 				// ensure url has a scheme and host
 				if u.Scheme == "" {
-					u.Scheme = mainUrl.Scheme
+					u.Scheme = originUrl.Scheme
 				}
 				if u.Host == "" {
-					u.Host = mainUrl.Host
+					u.Host = originUrl.Host
 				}
 
 				urls = append(urls, u.String())
@@ -204,7 +204,7 @@ func crawlNodes(n *html.Node, mainUrl *url.URL) []string {
 
 	// search all sibling nodes
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		urls = append(urls, crawlNodes(c, mainUrl)...)
+		urls = append(urls, findUrlsInNode(c, originUrl)...)
 	}
 
 	return urls

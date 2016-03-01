@@ -1,34 +1,68 @@
+/**
+PACKAGE DOCUMENTATION
+
+package crawler
+    import "."
+
+
+TYPES
+
+type CrawledUrlResponse struct {
+    Url  string
+    Body string
+}
+    sent back to user after each successful page crawl
+
+type Crawler struct {
+    BaseUrl string
+    Depth   int
+    Export  chan CrawledUrlResponse
+    Quit    chan int
+    // contains filtered or unexported fields
+}
+    main struct
+
+func (c *Crawler) Crawl()
+    Kicks off the crawling of the baseUrl and keeps track of running
+    goroutines
+*/
 package crawler
 
 import (
+	"golang.org/x/net/html"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
-	"golang.org/x/net/html"
-	"io/ioutil"
 	"strings"
 	"sync"
 )
 
+// main struct
 type Crawler struct {
-	BaseUrl string
-	Depth   int
-	Export chan CrawledUrlResponse
-	Quit chan int
-	mux sync.Mutex
+	BaseUrl     string
+	Depth       int
+	Export      chan CrawledUrlResponse
+	Quit        chan int
+	mux         sync.Mutex
 	crawledUrls map[string]bool
 }
 
+// sent back to user after each successful page crawl
 type CrawledUrlResponse struct {
-	Url string
+	Url  string
 	Body string
 }
 
+// channels used when crawls are starting and finishing
 var startChannel = make(chan bool)
 var endChannel = make(chan bool)
 
+// count of how many crawls are running
 var numStarted, numFinished = 1, 0
 
+// Kicks off the crawling of the baseUrl and
+// keeps track of running goroutines
 func (c *Crawler) Crawl() {
 
 	c.crawledUrls = make(map[string]bool)
@@ -36,11 +70,11 @@ func (c *Crawler) Crawl() {
 	go c.crawl(c.BaseUrl, c.Depth)
 
 	for {
-		select{
-		case <- startChannel:
+		select {
+		case <-startChannel:
 			numStarted++
 
-		case <- endChannel:
+		case <-endChannel:
 			numFinished++
 			if numStarted == numFinished {
 				c.Quit <- 1
@@ -49,6 +83,8 @@ func (c *Crawler) Crawl() {
 	}
 }
 
+// goroutine function that crawls a specific url and
+// kicks off seperate goroutines of found urls in the page
 func (c *Crawler) crawl(urlString string, depth int) {
 
 	// max depth?
@@ -67,6 +103,8 @@ func (c *Crawler) crawl(urlString string, depth int) {
 		return
 	}
 
+	// use this to build relative hrefs that don't
+	// have a domain name attached
 	mainUrl, err := url.Parse(urlString)
 	if err != nil {
 		log.Print(err)
@@ -125,11 +163,10 @@ func (c *Crawler) crawl(urlString string, depth int) {
 	// find all hrefs
 	urls := crawlNodes(doc, mainUrl)
 
-
 	for _, urlToCrawl := range urls {
 		startChannel <- true
 		// crawl all links we found
-		go c.crawl(urlToCrawl, depth - 1)
+		go c.crawl(urlToCrawl, depth-1)
 	}
 
 	endChannel <- true
@@ -137,8 +174,10 @@ func (c *Crawler) crawl(urlString string, depth int) {
 
 }
 
+// recursively crawls dom nodes searching for more urls
 func crawlNodes(n *html.Node, mainUrl *url.URL) []string {
 
+	// the url we find
 	urls := []string{}
 
 	if n.Type == html.ElementNode && n.Data == "a" {
@@ -149,10 +188,10 @@ func crawlNodes(n *html.Node, mainUrl *url.URL) []string {
 					break
 				}
 
+				// ensure url has a scheme and host
 				if u.Scheme == "" {
 					u.Scheme = mainUrl.Scheme
 				}
-
 				if u.Host == "" {
 					u.Host = mainUrl.Host
 				}
@@ -163,6 +202,7 @@ func crawlNodes(n *html.Node, mainUrl *url.URL) []string {
 		}
 	}
 
+	// search all sibling nodes
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		urls = append(urls, crawlNodes(c, mainUrl)...)
 	}

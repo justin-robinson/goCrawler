@@ -6,11 +6,11 @@ import (
 
 func TestCrawl(t *testing.T) {
 
-	urlsExpected := map[string]bool {
-		"https://jor.pw" : true,
-		"https://jor.pw/downloads/robinson,justin.docx" : true,
-		"https://jor.pw/downloads/robinson,justin.pdf" : true,
-		"https://github.com/justin-robinson" : true,
+	urlsExpected := map[string]bool{
+		"https://jor.pw":                                true,
+		"https://jor.pw/downloads/robinson,justin.docx": true,
+		"https://jor.pw/downloads/robinson,justin.pdf":  true,
+		"https://github.com/justin-robinson":            true,
 	}
 
 	urlsGot := map[string]bool{}
@@ -19,10 +19,10 @@ func TestCrawl(t *testing.T) {
 	quit := make(chan int)
 
 	crawler := Crawler{
-		BaseUrl:"https://jor.pw",
-		Depth:2,
-		Export:ch,
-		Quit: quit,
+		BaseUrl: "https://jor.pw",
+		Depth:   2,
+		Export:  ch,
+		Quit:    quit,
 	}
 
 	go crawler.Crawl()
@@ -31,10 +31,10 @@ func TestCrawl(t *testing.T) {
 		select {
 		case url := <-crawler.Export:
 			urlsGot[url.Url] = true
-		case <- quit:
+		case <-quit:
 
 			// check we got the right number of urls
-			if ( len(urlsGot) != len(urlsExpected) ) {
+			if len(urlsGot) != len(urlsExpected) {
 				t.Errorf("Expected %v urls, got %v", len(urlsExpected), len(urlsGot))
 			}
 
